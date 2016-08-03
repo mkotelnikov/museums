@@ -1,0 +1,46 @@
+<link rel="import" href="../polymer.html">
+<link rel="import" href="../leaflet.html">
+
+<dom-module id="mosaic-map-tiles"> <script>
+    (function() {
+        Polymer({
+            is : 'mosaic-map-tiles',
+            properties : {
+                leafletElement : {
+                    type : Object,
+                    notify : true
+                },
+                tilesUrl : {
+                    type : String,
+                    notify : true
+                },
+                utfgridUrl : {
+                    type : String,
+                    notify : true
+                }
+            },
+            ready : function() {
+                this.leafletElement = new L.featureGroup();
+                var tiles = L.tileLayer(this.tilesUrl, {
+                /* 
+                 attribution : attribution,
+                 minZoom : minZoom,
+                 maxZoom : maxZoom,
+                 */
+                });
+                this.leafletElement.addLayer(tiles);
+                if (this.utfgridUrl) {
+                    var utfGrid = new L.UtfGrid(this.utfgridUrl);
+                    this.leafletElement.addLayer(utfGrid);
+                    utfGrid.on('mouseover', function(ev) {
+                        this.fire('mouseover', ev);
+                    }, this)
+                    utfGrid.on('click', function(ev) {
+                        this.fire('click', ev);
+                    }, this)
+                }
+                this.fire('leaflet-layer-added');
+            }
+        });
+    })();
+</script> </dom-module>

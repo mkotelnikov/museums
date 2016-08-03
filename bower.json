@@ -1,0 +1,11 @@
+{
+  "name": "world-map",
+  "private": true,
+  "dependencies": {
+    "leaflet": "^0.7.7",
+    "Leaflet.utfgrid": "*",
+    "polymer": "^1.6.0",
+    "webcomponentsjs": "^0.7.22"
+  },
+  "devDependencies": {}
+}

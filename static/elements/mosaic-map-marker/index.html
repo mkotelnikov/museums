@@ -1,0 +1,83 @@
+<link rel="import" href="../polymer.html">
+<link rel="import" href="../leaflet.html">
+
+<dom-module id="mosaic-map-marker"> <script>
+    (function() {
+
+        Polymer({
+            is : 'mosaic-map-marker',
+            properties : {
+                lat : {
+                    type : Number,
+                    value : null,
+                    reflectToAttribute : true,
+                    notify : true,
+                    observer : '_positionChanged'
+                },
+                lng : {
+                    type : Number,
+                    value : null,
+                    reflectToAttribute : true,
+                    notify : true,
+                    observer : '_positionChanged'
+                },
+                iconUrl : String,
+                iconSize : Array,
+                iconAnchor : Array,
+                popupAnchor : Array,
+                showPopup : {
+                    type : Boolean,
+                    observer : '_onPopupChange'
+                }
+            },
+            ready : function() {
+                var latlng = L.latLng(this.lat, this.lng);
+                var icon = L.icon({
+                    iconUrl : this.iconUrl,
+                    iconSize : this.iconSize,
+                    iconAnchor : this.iconAnchor,
+                    popupAnchor : this.popupAnchor
+                });
+                this.leafletElement = new L.marker(latlng, {
+                    icon : icon
+                });
+                this._updatePopup = this._updatePopup.bind(this);
+                this._observer = Polymer.dom(this).observeNodes(this._updatePopup);
+                setTimeout(this._updatePopup);
+            },
+            _positionChanged : function(ev) {
+                if (this.leafletElement) {
+                    this.leafletElement.setLatLng(L.latLng(this.lat, this.lng));
+                }
+                this._updatePopup();
+            },
+            _onPopupChange : function(val){
+                this._updatePopup();
+            },
+            _getPopupContent : function(){
+                var content = this.$$('div');
+                return content;
+            },
+            _updatePopup : function(){
+                if (!this.leafletElement)
+                    return ;
+                if (this.showPopup){
+                    var content = this._getPopupContent();
+                    if (!content)
+                        return ;
+                    if (!this._popup) {
+                        this._popup = L.popup({
+                            closeOnClick : false
+                        });
+                    }
+                    this._popup.setContent(content);
+                    this.leafletElement.bindPopup(this._popup).openPopup();
+                } else if (this._popup){
+                    this.leafletElement.closePopup();
+                    delete this._popup;
+                }
+            }
+
+        });
+    })();
+</script> </dom-module>

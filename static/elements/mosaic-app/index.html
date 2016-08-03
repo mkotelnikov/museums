@@ -1,0 +1,116 @@
+<link rel="import" href="../polymer.html">
+<link rel="import" href="../mosaic-map/index.html">
+<link rel="import" href="../mosaic-map-marker/index.html">
+<link rel="import" href="../mosaic-map-tiles/index.html">
+
+<dom-module id="mosaic-app">
+    <style>
+        :host {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+
+    <template>
+    
+        <mosaic-map center="{{center}}"
+            zoom="{{zoom}}" min-zoom="1" max-zoom="18"
+            on-moveend="_endMapMove">
+
+            <mosaic-map-tiles
+                tiles-url="tiles/tiles-world/{z}/{x}/{y}/tile.png"
+                utfgrid-url="tiles/tiles-world/{z}/{x}/{y}/tile.utf.json?cb={cb}"
+                on-click="_handleClick" on-mouseover="_handleMouseOver">
+            </mosaic-map-tiles>
+    
+            <mosaic-map-tiles tiles-url='french/museums/tilestyle-museum/{z}/{x}/{y}/tile.png?query={"q":""}&'
+                utfgrid-url='french/museums/tilestyle-museum/{z}/{x}/{y}/tile.utf.json?query={"q":""}&?cb={cb}'>
+            </mosaic-map-tiles>
+    
+             <template is="dom-if" if="{{data}}" restamp>
+                 <mosaic-map-marker lat="{{lat}}" lng="{{lng}}"
+                    icon-url="./libs/leaflet/dist/images/marker-icon.png"
+                    icon-size="[ 32, 48 ]"
+                    icon-anchor="[ 16, 48 ]"
+                    popup-anchor="[ 0, -50 ]"
+                    show-popup
+                    data="{{data}}"
+                    >
+                    <div  style="min-width: 150px">
+                        <h3>
+                            <span class="name">{{data.NAME}}</span>
+                            (<span class="abbrev">{{data.ISO2}}</span>)
+                        </h3>
+                        <p>
+                            Area: <span class="postcode">{{data.AREA}}</span> km<sup>2</sup>
+                        </p>
+                        <p>
+                            Population: <span class="population">{{data.POP2005}}</span>
+                        </p>
+                        <div style="background-color:#eee; border-top: 1px solid silver; padding: 0.5em">
+                            Mouse:
+                            <div>Latitude: {{mousePosition.lat}}</div>
+                            <div>Longitude: {{mousePosition.lng}}</div>
+                        </div>
+                    </template>
+                </mosaic-map-marker>
+            </div>
+            
+        </mosaic-map>
+        
+    </template>
+    
+    <script>
+    Polymer({
+        is : 'mosaic-app',
+        properties : {
+            center : {
+                type : Array,
+                computed : '_getCenter(lat,lng)'
+            },
+            data : {
+                type : Object,
+                observable : true,
+            },
+            mousePosition : {
+                type : Object,
+                observable : true,
+            },
+            lat : {
+                type : Number,
+                observable : true,
+                value : 48.883908
+            },
+            lng : {
+                type : Number,
+                observable : true,
+                value : 2.309875
+            },
+            zoom : {
+                type : Number,
+                observable : true,
+                value : 5
+            }
+        },
+        ready : function() {
+        },
+        _getCenter : function(lat, lng){
+            return [lng,lat];
+        },
+        _handleClick : function(ev) {
+            var latlng = ev.detail.latlng;
+            this.lat = latlng.lat;
+            this.lng = latlng.lng;
+            this.data = ev.detail.data;
+            this.mousePosition = latlng;
+        },
+        _handleMouseOver : function(ev) {
+            this.mousePosition = ev.detail.latlng;
+        },
+        _endMapMove : function(ev) {
+            // console.log('END MAP MOVE', ev);
+        }
+    });
+    </script>
+</dom-module>

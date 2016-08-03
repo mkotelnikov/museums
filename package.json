@@ -1,0 +1,44 @@
+{
+  "name": "museums",
+  "version": "0.0.1",
+  "main": "index.js",
+  "url": "",
+  "keywords": [
+    "map",
+    "osm",
+    "geojson"
+  ],
+  "licenses": [
+    {
+      "type": "BSD"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "contributors": [
+    {
+      "name": "Mikhail Kotelnikov",
+      "email": "mikhail.kotelnikov@ubimix.com"
+    }
+  ],
+  "dependencies": {
+    "d3-ease": "^1.0.0",
+    "ecstatic": "^1.4.1",
+    "lodash": "^4.11.2",
+    "mosaic-api-service": "^0.1.7",
+    "mosaic-pathmapper": "^0.1.2",
+    "mosaic-teleport": "^1.0.1",
+    "mosaic-transform": "^0.1.4"
+  },
+  "scripts": {
+    "postinstall": "node_modules/bower/bin/bower --allow-root install"
+  },
+  "devDependencies": {
+    "bower": "^1.7.9"
+  },
+  "config": {
+    "unsafe-perm": true
+  }
+}
