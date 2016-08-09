@@ -5,6 +5,10 @@ var config = require('./.config');
 
 var dbConf = config.getDbConfig();
 var service = new MosaicService({
+    ttl : 2, // 2 sec tiles in cache
+    ttlStyle : 60 * 60 * 24, // style should live 24 hours
+    ttlSource : 1, // loaded data should live 1 sec,
+    noTilesCache : true,
     baseDir : __dirname,
     db : dbConf,
     locale : 'french',

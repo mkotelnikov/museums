@@ -28,7 +28,8 @@ function newStyleGenerator() {
             '#FFFFFF' ];
     // var haloColors = getHaloColors(5, [ 0, 4, 8 ], [ 'red', 'yellow', 'white'
     // ]);
-    var haloColors = [ 'red', 'red', 'orange', 'yellow', 'white' ];
+    var haloColors = [ 'navy', 'blue', 'green', 'yellow', 'white' ];
+    var haloColors = [ 'maroon', 'red', 'red', 'orange', 'yellow', 'white' ];
     var haloWidth = transform([ 4, 12 ], [ 16, 64 ], d3_ease.easeQuadIn);
     var haloUrl = dir + '/marker-light.png';
 
@@ -49,7 +50,7 @@ function newStyleGenerator() {
         if (zoom >= 9) {
             style['::outline'] = {
                 'marker-width' : outlineWidth(zoom),
-                'marker-fill' : 'red',
+                'marker-fill' : 'yellow',
                 'marker-allow-overlap' : true,
                 'marker-line-color' : 'transparent',
                 'marker-line-opacity' : 0

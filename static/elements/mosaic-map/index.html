@@ -9,7 +9,7 @@
     height: 100%;
 }
 </style>
-<template> </template> <script>
+<template></template> <script>
     (function() {
         Polymer({
             is : 'mosaic-map',
@@ -18,17 +18,18 @@
                 maxZoom : Number,
                 zoom : {
                     type : Number,
-                    notify : true
+                    notify : true,
+                    value : 0,
+                    observer : '_updateMap'
                 },
                 center : {
                     type : Array,
-                    notify : true
+                    notify : true,
+                    value : [ 0, 0 ],
+                    observer : '_updateMap'
                 },
             },
-            ready : function() {
-                setTimeout(this._onDomReady.bind(this));
-            },
-            _onDomReady : function(){
+            attached : function() {
                 var center = this.center || [ 0, 0 ];
                 var zoom = this.zoom || 0;
                 this.map = L.map(this, {
@@ -36,8 +37,20 @@
                     maxZoom : this.maxZoom || 22
                 });
                 this.map.setView(L.latLng([ center[1], center[0] ]), zoom);
+                this.map.on('click movestart moveend move zoomend',
+                        function(ev) {
+                            this.fire('map-' + ev.type, ev);
+                        }, this);
                 this.map.on('moveend zoomend', function(ev) {
-                    this.fire(ev.type, ev);
+                    this.debounce('move', function() {
+                        var zoom = this.map.getZoom();
+                        var center = this.map.getCenter();
+                        this.zoom = zoom;
+                        if (!this.center || this.center[0] !== center.lng
+                                || this.center[1] !== center.lat) {
+                            this.center = [ center.lng, center.lat ];
+                        }
+                    }, 250);
                 }, this);
 
                 this._observer = Polymer.dom(this).observeNodes(function(info) {
@@ -60,6 +73,14 @@
                     }
                 }, this);
                 this.map.invalidateSize();
+            },
+            _updateMap : function(ev) {
+                if (!this.map)
+                    return;
+                this.debounce('mapupdate', function() {
+                    this.map.setView([ this.center[1], this.center[0] ],
+                            this.zoom);
+                }, 250);
             }
         });
     })();

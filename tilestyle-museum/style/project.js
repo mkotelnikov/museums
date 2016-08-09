@@ -1,7 +1,7 @@
 module.exports = function() {
     var style = require('./style');
     return {
-        bufferSize : 256,
+        bufferSize : 64,
         "srs" : "+init=epsg:3857",
         "Stylesheet" : [ style ],
         "interactivity" : {
