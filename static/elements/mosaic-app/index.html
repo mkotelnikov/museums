@@ -3,70 +3,61 @@
 <link rel="import" href="../mosaic-map-marker/index.html">
 <link rel="import" href="../mosaic-map-tiles/index.html">
 
-<script type="text/javascript" src="../../libs/mosaic-state/dist/index.js"></script>
-<script type="text/javascript" src="../../libs/mosaic-webcomponents/ActiveFields.js"></script>
-<script type="text/javascript" src="../../libs/mosaic-webcomponents/AppBehavior.js"></script>
-<script type="text/javascript" src="../../libs/mosaic-webcomponents/AppComponentBehavior.js"></script>
+<script type="text/javascript"
+    src="../../libs/mosaic-state/dist/index.js"></script>
+<script type="text/javascript"
+    src="../../libs/mosaic-webcomponents/ActiveFields.js"></script>
+<script type="text/javascript"
+    src="../../libs/mosaic-webcomponents/AppBehavior.js"></script>
+<script type="text/javascript"
+    src="../../libs/mosaic-webcomponents/AppComponentBehavior.js"></script>
 
 <dom-module id="mosaic-app-component">
-    <style>
-        :host {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-    </style>
+<style>
+:host {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+</style>
 
-    <template>
-    
-        <mosaic-map zoom="{{mapInfo.zoom}}" center="{{mapInfo.center}}" min-zoom="1" max-zoom="18"
-        >
+<template>
+<div id="panel">
+</div>
+<div id="map">
+</div>
+<mosaic-map zoom="{{mapInfo.zoom}}"
+    center="{{mapInfo.center}}" min-zoom="1" max-zoom="18">
 
-            <mosaic-map-tiles
-                tiles-url="tiles/tiles-world/{z}/{x}/{y}/tile.png">
-            </mosaic-map-tiles>
+    <mosaic-map-tiles tiles-url="tiles/tiles-world/{z}/{x}/{y}/tile.png">
+    </mosaic-map-tiles>
+
+    <mosaic-map-tiles
+        tiles-url="{{locale.lang}}/museums/tilestyle-museum/{z}/{x}/{y}/tile.png?query={{query}}"
+        utfgrid-url="{{locale.lang}}/museums/tilestyle-museum/{z}/{x}/{y}/tile.utf.json?query={{query}}&cb={cb}"
+        on-click="_handleClick">
+    </mosaic-map-tiles>
     
-            <mosaic-map-tiles tiles-url='french/museums/tilestyle-museum/{z}/{x}/{y}/tile.png?query={"q":"{{query}}"}&'
-                utfgrid-url='french/museums/tilestyle-museum/{z}/{x}/{y}/tile.utf.json?query={"q":"{{query}}"}&cb={cb}'
-                 on-mouseover="_handleMouseOver" on-click="_handleClick">
-            </mosaic-map-tiles>
-    
-                 <mosaic-map-marker position="{{marker.position}}" 
-                    icon-url="./libs/leaflet/dist/images/marker-icon.png"
-                    icon-size="[ 32, 48 ]"
-                    icon-anchor="[ 16, 48 ]"
-                    popup-anchor="[ 0, -50 ]"
-                    show-popup
-                    data="{{marker.data}}"
-                    >
-                    <div  style="min-width: 150px">
-                        <h3>
-                            <span class="name">{{marker.data.NAME}}</span>
-                            (<span class="abbrev">{{marker.data.ISO2}}</span>)
-                        </h3>
-                        <p>
-                            Area: <span class="postcode">{{marker.data.AREA}}</span> km<sup>2</sup>
-                        </p>
-                        <p>
-                            Population: <span class="population">{{marker.data.POP2005}}</span>
-                        </p>
-                        <div style="background-color:#eee; border-top: 1px solid silver; padding: 0.5em">
-                            Mouse:
-                            <div>Latitude: {{marker.position}}</div>
-                            <div>Longitude: {{marker.position}}</div>
-                        </div>
-                        <!-- 
-                    <template is="dom-if" if="{{marker.data}}" restamp>
-                    </template>
-                     -->
-                </mosaic-map-marker>
-            </div>
-            
-        </mosaic-map>
-        
+    <template is="dom-if" if="{{marker.data}}" restamp>
+        <mosaic-map-marker position="{{marker.position}}"
+            icon-url="./libs/leaflet/dist/images/marker-icon.png"
+            icon-size="[ 32, 48 ]" icon-anchor="[ 16, 48 ]"
+            popup-anchor="[ 0, -50 ]"
+            show-popup
+            data="{{marker.data}}">
+                <div style="min-width: 150px">
+                    <h3>
+                        <span class="name">{{marker.data.name}}</span> (<span
+                            class="abbrev">{{marker.data.category}}</span>)
+                    </h3>
+                </div>
+        </mosaic-map-marker>
     </template>
-    
-    <script>
+
+</mosaic-map>
+
+</template>
+<script>
     Polymer({
         is : 'mosaic-app-component',
         behaviors : [ AppComponentBehavior, ActiveFields.Behavior ],
@@ -79,48 +70,51 @@
                 position : 'map.marker.position',
                 data : 'map.marker.data',
             }),
+            locale : ActiveFields.field('locale', {
+                lang : 'lang'
+            }),
+            query : {
+                value  : JSON.stringify({q : ''})   
+            }
+        },
+        ready : function(){
         },
         attached : function() {
-            this.mapInfo.center = [2.309875, 48.883908];
+            this.locale.lang = 'french';
+            this.mapInfo.center = [ 2.309875, 48.883908 ];
             this.mapInfo.zoom = 12;
             this.marker.position = this.mapInfo.center;
         },
         _handleClick : function(ev) {
             var latlng = ev.detail.latlng;
             if (!latlng)
-                return ;
-            var coords = [latlng.lng, latlng.lat];
-            this.mapInfo.center = coords;
-            this.marker.data = ev.detail.data;
-            this.marker.position = coords;
-        },
-        _handleMouseOver : function(ev) {
-            this.mousePosition = ev.detail.latlng;
+                return;
+            var data = ev.detail.data;
+            if (data){
+                var coords = [ latlng.lng, latlng.lat ];
+                this.mapInfo.center = coords;
+                this.marker.position = coords;
+            }
+            this.marker.data = data;
         },
         onComponentAdd : function(state) {
             this.initActiveFields(state);
-            state.addListener(function(ev){
-                // console.log('>>', JSON.stringify(state.state(), null, 2));
+            state.addListener(function(ev) {
+                console.log('>>', JSON.stringify(state.state(), null, 2));
             })
         },
 
         onComponentRemove : function(state) {
             this.clearActiveFields(state);
         },
-        
- 
-    });
-    </script>
-</dom-module>
 
-<dom-module id="mosaic-app">
-    <template>
-        <mosaic-app-component />
-    </template>
-    <script>
+    });
+</script> </dom-module>
+
+<dom-module id="mosaic-app"> <template> <mosaic-app-component />
+</template> <script>
     Polymer({
         is : 'mosaic-app',
         behaviors : [ AppBehavior ],
     });
-    </script>
-</dom-module>
+</script> </dom-module>

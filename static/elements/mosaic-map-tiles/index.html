@@ -10,25 +10,53 @@
                     type : Object,
                     notify : true
                 },
+                attribution : {
+                    type : String,
+                    notify : true,
+                    observer : '_resetTiles'
+                },
                 tilesUrl : {
                     type : String,
-                    notify : true
+                    notify : true,
+                    observer : '_resetTiles'
                 },
                 utfgridUrl : {
                     type : String,
-                    notify : true
+                    notify : true,
+                    observer : '_resetUtfGrid'
                 }
             },
             ready : function() {
                 this.leafletElement = new L.featureGroup();
-                var tiles = L.tileLayer(this.tilesUrl, {
-                /* 
-                 attribution : attribution,
-                 minZoom : minZoom,
-                 maxZoom : maxZoom,
-                 */
-                });
-                this.leafletElement.addLayer(tiles);
+                this._resetTiles();
+                this._resetUtfGrid();
+                this.fire('leaflet-layer-added');
+            },
+            _resetTiles : function(url) {
+                if (!this.leafletElement)
+                    return;
+                if (this._tiles) {
+                    this.leafletElement.removeLayer(this._tiles);
+                    delete this._tiles;
+                }
+                if (this.tilesUrl) {
+                    var tiles = this._tiles = L.tileLayer(this.tilesUrl, {
+                        attribution : this.attribution,
+                    /* 
+                     minZoom : minZoom,
+                     maxZoom : maxZoom,
+                     */
+                    });
+                    this.leafletElement.addLayer(tiles);
+                }
+            },
+            _resetUtfGrid : function() {
+                if (!this.leafletElement)
+                    return;
+                if (this._utfgrid) {
+                    this.leafletElement.removeLayer(this._utfgrid);
+                    delete this._utfgrid;
+                }
                 if (this.utfgridUrl) {
                     var utfGrid = new L.UtfGrid(this.utfgridUrl);
                     this.leafletElement.addLayer(utfGrid);
@@ -39,8 +67,7 @@
                         this.fire('click', ev);
                     }, this)
                 }
-                this.fire('leaflet-layer-added');
-            }
+            },
         });
     })();
 </script> </dom-module>
