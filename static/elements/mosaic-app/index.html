@@ -61,22 +61,31 @@
     Polymer({
         is : 'mosaic-app-component',
         behaviors : [ AppComponentBehavior, ActiveFields.Behavior ],
-        properties : {
-            mapInfo : ActiveFields.field('mapInfo', {
-                center : 'map.center',
-                zoom : 'map.zoom'
-            }),
-            marker : ActiveFields.field('marker', {
-                position : 'map.marker.position',
-                data : 'map.marker.data',
-            }),
-            locale : ActiveFields.field('locale', {
-                lang : 'lang'
-            }),
+        properties : ActiveFields({
+            mapInfo : {
+                type : Object,
+                fields : {
+                    center : 'map.center',
+                    zoom : 'map.zoom'
+                }
+            },
+            marker : {
+                type : Object,
+                fields : {
+                    position : 'map.marker.position',
+                    data : 'map.marker.data',
+                }
+            },
+            locale : {
+                type : Object,
+                fields : {
+                    lang : 'lang'
+                }
+            },
             query : {
                 value  : JSON.stringify({q : ''})   
             }
-        },
+        }),
         ready : function(){
         },
         attached : function() {

@@ -30,7 +30,8 @@
     "mosaic-api-service": "^0.1.0",
     "mosaic-pathmapper": "^0.1.0",
     "mosaic-teleport": "^1.0.0",
-    "mosaic-transform": "^0.1.0"
+    "mosaic-transform": "^0.1.0",
+    "mosaic-webcomponents" : "^0.1.0"
   },
   "scripts": {
     "postinstall": "node_modules/bower/bin/bower --allow-root install"
