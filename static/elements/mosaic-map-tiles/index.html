@@ -35,19 +35,21 @@
             _resetTiles : function(url) {
                 if (!this.leafletElement)
                     return;
-                if (this._tiles) {
-                    this.leafletElement.removeLayer(this._tiles);
-                    delete this._tiles;
-                }
+                var prevTiles = this._tiles; 
                 if (this.tilesUrl) {
-                    var tiles = this._tiles = L.tileLayer(this.tilesUrl, {
+                    this._tiles = L.tileLayer(this.tilesUrl, {
                         attribution : this.attribution,
                     /* 
                      minZoom : minZoom,
                      maxZoom : maxZoom,
                      */
                     });
-                    this.leafletElement.addLayer(tiles);
+                    this.leafletElement.addLayer(this._tiles);
+                }
+                if (prevTiles) {
+                    setTimeout(function(){
+                        this.leafletElement.removeLayer(prevTiles);
+                    }.bind(this), 250);
                 }
             },
             _resetUtfGrid : function() {
