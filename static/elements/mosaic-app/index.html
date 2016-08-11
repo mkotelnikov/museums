@@ -1,14 +1,17 @@
-<link rel="import" href="../../libs/polymer/polymer.html" />
+<link rel="import" href="../../libs/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../libs/iron-icon/iron-icon.html">
+<link rel="import" href="../../libs/iron-icons/iron-icons.html">
+<link rel="import" href="../../libs/iron-list/iron-list.html">
 <link rel="import" href="../../libs/paper-button/paper-button.html">
+<link rel="import" href="../../libs/paper-card/paper-card.html">
 <link rel="import" href="../../libs/paper-drawer-panel/paper-drawer-panel.html">
 <link rel="import" href="../../libs/paper-header-panel/paper-header-panel.html">
-<link rel="import" href="../../libs/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="../../libs/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../libs/paper-input/paper-input.html">
-
-<link rel="import" href="../../libs/iron-icons/iron-icons.html">
 <link rel="import" href="../../libs/paper-styles/color.html">
-<link rel="import" href="../../libs/iron-icon/iron-icon.html">
+<link rel="import" href="../../libs/paper-styles/typography.html">
+<link rel="import" href="../../libs/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../libs/polymer/polymer.html" />
 
 <link rel="import" href="../mosaic-map/index.html">
 <link rel="import" href="../mosaic-map-marker/index.html">
@@ -18,6 +21,114 @@
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/ActiveFields.js"></script>
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/AppBehavior.js"></script>
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/AppComponentBehavior.js"></script>
+
+<dom-module id="museum-list-item">
+<style>
+paper-card { 
+    margin-bottom: 0.5em;
+    width: 98%;
+    overflow: hidden; 
+}
+.card-header { }
+.card-header .card-title { @apply(--paper-font-headline); }
+.card-header .category {
+    font-size: 0.8em;
+    float: right;
+    margin: 0.5em;
+    vertical-align: middle;  
+    color: var(--paper-grey-600); 
+}
+.card-header .urls { }
+.card-header .urls .url { }
+
+.card-content { overflow: hidden; }
+.card-content .address { }
+.card-content .description { color: var(--paper-grey-600); }
+
+</style>
+<template>
+    <paper-card>
+      <div class="card-header">
+        <template is="dom-if" if="[[category]]">
+            <div class="category">[[category]]</div>
+        </template>
+        <div class="card-title">[[label]]</div>
+        <template is="dom-if" if="[[urls.length]]">
+            <div class="urls">
+            <template is="dom-repeat" items="[[urls]]">
+                <div class="url"><a href="[[item]]" taret="_blank">[[item]]</a></div>
+            </template>
+            </div> 
+        </template>
+      </div>
+      <div class="card-content">
+        <div class="address">[[address]]</div>
+        <div class="description">[[description]]</div>
+      </div>
+      
+      <div class="card-actions">
+      <!-- 
+        <paper-button>Share</paper-button>
+        <paper-button>Explore!</paper-button>
+      -->
+      </div>
+    </paper-card>
+</template>
+<script>
+(function() {
+    Polymer({
+        is : 'museum-list-item',
+        properties : {
+            item: {
+              type: Object,
+              observer : '_onItemChange'
+            },
+            selected: {
+               type: Boolean,
+               value : false
+            },
+            expanded: {
+                type: Boolean,
+                value : true,
+                observer : '_onExpandedChange'
+            }
+        },
+        _onExpandedChange : function(expanded){
+            if (!this.item)
+                return ;
+        },
+        _getValues: function(key){
+            var values = this.item.properties[key];
+            if (!Array.isArray(values)){
+                values = values ? [values] : [];
+            }
+            return values;
+        },
+        _getValue : function(key){
+            var values = this._getValues(key);
+            return values.length ? values[0] : '';
+        },
+        _mergeValues : function(keys){
+            var array = [];
+            keys.forEach(function(key){
+                var value = this._getValue(key);
+                if (value){
+                    array.push(value);
+                }
+            }, this);
+            return array.join(', ');
+        },
+        _onItemChange : function(item){
+            this.category = this._getValue('category');
+            this.label = this._getValue('name');
+            this.address = this._mergeValues(['address', 'city']);
+            this.description = this._getValue('description');
+            this.urls = this._getValues('url');
+        }
+    })
+})();
+</script>
+</dom-module>
 
 <dom-module id="mosaic-app-component">
 <style>
@@ -32,7 +143,7 @@
 [drawer] {
     background-color: #eee;
 }
-paper-input {
+paper-input input {
     color: white;
 }
   
@@ -41,21 +152,25 @@ paper-input {
 <template>
 <paper-drawer-panel>
 
+  <iron-ajax url="{{searchUrl}}" last-response="{{searchResults}}" auto></iron-ajax>
   <paper-header-panel drawer right-drawer>
     <paper-toolbar>
       <h1>Mosaic Maps</h1>
     </paper-toolbar>
-    
-    <div> Drawer content... </div>
+    <div>
+        <template is="dom-repeat" items="[[searchItems]]">
+            <museum-list-item item="{{item}}" />
+        </template>
+    </div>
   </paper-header-panel>
   
   <paper-header-panel main>
     <paper-toolbar>
       <paper-icon-button icon="menu" paper-drawer-toggle></paper-icon-button>
       <div>
-            <paper-input label="Search" value="{{queryInput}}">
+            <paper-input label="Search" value="{{searchInput}}">
               <iron-icon icon="search" prefix></iron-icon>
-              <paper-icon-button suffix icon="clear"></paper-icon-button>
+              <paper-icon-button suffix on-click="_clearSearchInput" icon="clear" alt="Clear" title="Clear"></paper-icon-button>
             </paper-input>
       </div>
     </paper-toolbar>
@@ -66,8 +181,8 @@ paper-input {
         </mosaic-map-tiles>
     
         <mosaic-map-tiles
-            tiles-url="{{locale.lang}}/museums/tilestyle-museum/{z}/{x}/{y}/tile.png?query={{querySerialized}}"
-            utfgrid-url="{{locale.lang}}/museums/tilestyle-museum/{z}/{x}/{y}/tile.utf.json?query={{querySerialized}}&cb={cb}"
+            tiles-url="{{searchTilesUrl}}"
+            utfgrid-url="{{searchUtfGridUrl}}"
             on-click="_handleClick">
         </mosaic-map-tiles>
         
@@ -98,6 +213,23 @@ paper-input {
         is : 'mosaic-app-component',
         behaviors : [ AppComponentBehavior, ActiveFields.Behavior ],
         properties : ActiveFields({
+            searchUrl : {
+                type : String,
+                computed : '_getSearchUrl(locale.lang,search.q)'
+            },
+            searchTilesUrl : {
+                type : String,
+                computed : '_getSearchTilesUrl(locale.lang,search.q)'
+            },
+            searchUtfGridUrl : {
+                type : String,
+                computed : '_getSearchUtfGridUrl(locale.lang,search.q)'
+            },
+            searchResults : {
+                Object,
+                observer : '_onSearchResultsChanged'
+            },
+            searchItems : Array,
             mapInfo : {
                 type : Object,
                 fields : {
@@ -116,26 +248,30 @@ paper-input {
                 type : Object,
                 fields : {
                     lang : 'lang'
-                }
+                },
+                observer : '_onLocaleUpdate'
             },
-            querySerialized : {
-                value  : JSON.stringify({q : ''})   
+            lang : {
+                type : String,
+                value : 'french'
             },
-            query : {
+            search : {
                 type : Object,
                 fields : {
-                    q : 'query.q'
+                    q : 'search.q',
+                    selected : 'search.selected'
                 },
             },
-            queryInput : {
+            searchInput : {
                 type : Object,
-                observer : '_onQueryInputChanged'
+                observer : '_onSearchInputChanged'
             }
         }),
         ready : function(){
+            this.locale.lang = 'french';
+            this.lang = this.locale.lang || 'french';
         },
         attached : function() {
-            this.locale.lang = 'french';
             this.mapInfo.center = [ 2.309875, 48.883908 ];
             this.mapInfo.zoom = 12;
             this.marker.position = this.mapInfo.center;
@@ -156,22 +292,51 @@ paper-input {
             this.initActiveFields(state);
             state.addListener(function(ev) {
                 var s = state.state();
-                console.log('>>', JSON.stringify(s, null, 2));
-                
-                this.querySerialized = JSON.stringify(s.query);
-                console.log('????', this.querySerialized);
+                // console.log('>>', JSON.stringify(s, null, 2));
             }.bind(this))
         },
 
         onComponentRemove : function(state) {
             this.clearActiveFields(state);
         },
-        
-        _onQueryInputChanged : function(value){
-            var q = value;
-            if (q) { q += ':*'; }
-            this.query.q = q;
+        // ------------------------------------------------------------
+        _getQuery : function(q){
+            q = q || '';
+            return encodeURIComponent(JSON.stringify({ q : q }));
         },
+        _getSearchUrl : function(lang, q){
+            return './' + lang + '/museums/search?limit=20&query=' + this._getQuery(q);
+        },
+        _getSearchTilesUrl : function(lang, q){
+            return './' + lang + '/museums/tilestyle-museum/{z}/{x}/{y}/tile.png?query=' + this._getQuery(q);  
+        },
+        _getSearchUtfGridUrl : function(lang, q){
+            return './' + lang + '/museums/tilestyle-museum/{z}/{x}/{y}/tile.utf.json?cb={cb}&query=' + this._getQuery(q);
+        },
+        _onLocaleUpdate : function(){
+            this.lang = this.locale.lang;
+        },
+        _onSearchInputChanged : function(value){
+            this.debounce('search', function() {
+                var q = value;
+                if (q) { q += ':*'; }
+                this.search.q = q;
+            }, 500);
+        },
+        _clearSearchInput : function(){
+            this.searchInput = '';
+        },
+        _onSearchResultsChanged : function(results){
+            if (!results || !results.features)
+                return ;
+            var list = [];
+            results.features.forEach(function(feature){
+                if (feature.properties.name) {
+                    list.push(feature);
+                }
+            })
+            this.searchItems = list;
+        }
     });
 </script> </dom-module>
 

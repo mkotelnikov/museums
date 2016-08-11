@@ -77,10 +77,10 @@
             _updateMap : function(ev) {
                 if (!this.map)
                     return;
-                this.debounce('mapupdate', function() {
+//                this.debounce('mapupdate', function() {
                     this.map.setView([ this.center[1], this.center[0] ],
                             this.zoom);
-                }, 250);
+//                }, 250);
             }
         });
     })();
