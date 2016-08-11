@@ -28,8 +28,8 @@ function newStyleGenerator() {
             '#FFFFFF' ];
     // var haloColors = getHaloColors(5, [ 0, 4, 8 ], [ 'red', 'yellow', 'white'
     // ]);
-    var haloColors = [ 'navy', 'blue', 'green', 'yellow', 'white' ];
     var haloColors = [ 'maroon', 'red', 'red', 'orange', 'yellow', 'white' ];
+    var haloColors = [ 'navy', 'navy', 'blue', 'blue', 'cyan', 'cyan', 'yellow', 'white' ];
     var haloWidth = transform([ 4, 12 ], [ 16, 64 ], d3_ease.easeQuadIn);
     var haloUrl = dir + '/marker-light.png';
 
