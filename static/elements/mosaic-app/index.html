@@ -1,6 +1,7 @@
 <link rel="import" href="../../libs/iron-ajax/iron-ajax.html">
 <link rel="import" href="../../libs/iron-icon/iron-icon.html">
 <link rel="import" href="../../libs/iron-icons/iron-icons.html">
+<link rel="import" href="../../libs/iron-input/iron-input.html">
 <link rel="import" href="../../libs/iron-list/iron-list.html">
 <link rel="import" href="../../libs/paper-button/paper-button.html">
 <link rel="import" href="../../libs/paper-card/paper-card.html">
@@ -30,19 +31,21 @@ paper-card { 
     overflow: hidden; 
 }
 .card-header { }
-.card-header .card-title { @apply(--paper-font-headline); }
+.card-header .card-title {
+    font-size: 1.2em;
+}
 .card-header .category {
     font-size: 0.8em;
     float: right;
     margin: 0.5em;
-    vertical-align: middle;  
+    vertical-align: middle;
     color: var(--paper-grey-600); 
 }
 .card-header .urls { }
-.card-header .urls .url { }
+.card-header .urls .url { font-size: 0.8em; }
 
 .card-content { overflow: hidden; }
-.card-content .address { }
+.card-content .address { color: var(--paper-grey-600); }
 .card-content .description { color: var(--paper-grey-600); }
 
 </style>
@@ -143,8 +146,11 @@ paper-card { 
 [drawer] {
     background-color: #eee;
 }
-paper-input input {
-    color: white;
+paper-input {
+    --paper-input-container-color: silver;
+    --paper-input-container-focus-color: white;
+    --paper-input-container-invalid-color: red;
+    --paper-input-container-input-color: white;
 }
   
 </style>
@@ -168,7 +174,7 @@ paper-input input {
     <paper-toolbar>
       <paper-icon-button icon="menu" paper-drawer-toggle></paper-icon-button>
       <div>
-            <paper-input label="Search" value="{{searchInput}}">
+            <paper-input label="Search" value="{{searchInput}}" no-label-float>
               <iron-icon icon="search" prefix></iron-icon>
               <paper-icon-button suffix on-click="_clearSearchInput" icon="clear" alt="Clear" title="Clear"></paper-icon-button>
             </paper-input>
