@@ -20,7 +20,7 @@ return Promise.resolve().then(function() {
         var link = $(this);
         var text = link.text();
         var href = link.attr('href');
-        if (text.match(/musée/gim) && href.indexOf('/wiki/') == 0) {
+        if (text.match(/(musée|château)/gim) && href.indexOf('/wiki/') == 0) {
             var fullHref = url.resolve(pageUrl, href);
             console.log((++counter) + ')', text, href);
             (function(fullHref) {
@@ -100,8 +100,34 @@ function extractProperties(pageUrl, $, properties) {
     return Promise.resolve().then(function() {
         var infobox = $('.infobox_v2');
 
-        var name = $('.firstHeading').text();
+        var mainTitle = $('.firstHeading');
+        var name = mainTitle.text();
         properties.name = name;
+
+        var content = $('#mw-content-text');
+        var toc = $('#toc');
+        var description = [];
+        if (toc[0]) {
+            var n = content.find(':first');
+            while (n[0] && n[0] != toc[0]) {
+                var tagName = n[0].tagName;
+                if (tagName === 'H1' || tagName === 'H2' //
+                        || tagName === 'H3' || tagName === 'H4')
+                    break;
+                if (n.attr('class') === 'toc_niveau_2') {
+                    break;
+                }
+                if (tagName == 'P') {
+                    var str = (n.text() || '').trim();
+                    str = str.replace(/\[\d+\]/gim, '');
+                    if (str) {
+                        description.push(str);
+                    }
+                }
+                n = n.next();
+            }
+        }
+        properties.description = description;
 
         infobox.find('tr').each(function() {
             var tr = $(this);
@@ -162,7 +188,7 @@ function extractImages(pageUrl, $, properties) {
             var href = img.attr('src');
             if (href.match(/\.(png|svg)/gim))
                 return;
-            if (href.match(/_location_map\.jpg/gim) || href.match(/Map_'/gim))
+            if (href.match(/_location_map\.jpg/gim) || href.match(/Map_/gim))
                 return;
             href = url.resolve(pageUrl, href);
             href = href.replace(/^(.*)\/\d+px-(.*)$/, '$1/512px-$2');
