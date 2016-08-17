@@ -13,7 +13,7 @@ curl -H "Content-Type: application/json" -X DELETE "$baseUrl/museums"
 curl -H "Content-Type: application/json" -X PUT "$baseUrl/museums"
 
 # Save data 
-curl -H "Content-Type: application/json" -X PUT --data-binary "@$dir/museums.geo.json" "$baseUrl/museums/data"
+curl -H "Content-Type: application/json" -X PUT --data-binary "@$dir/museums-wikipedia.geo.json" "$baseUrl/museums/data"
 
 # Drop index
 curl -H "Content-Type: application/json" -X DELETE "$baseUrl/museums/index/q"

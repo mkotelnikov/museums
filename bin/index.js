@@ -5,40 +5,25 @@ var crypto = require('crypto');
 
 var Loader = require('./Loader');
 
-var pageUrl = 'https://fr.wikipedia.org/wiki/Musée_de_France';
 var loader = new Loader({
     cacheDir : './.cache'
 })
-return Promise.resolve().then(function() {
-    return loader.getPage(pageUrl);
-}).then(function(window) {
-    var results = [];
-    var $ = jquery(window);
-    var counter = 0;
-    var promise = Promise.resolve();
-    $('a').each(function() {
-        var link = $(this);
-        var text = link.text();
-        var href = link.attr('href');
-        if (text.match(/(musée|château)/gim) && href.indexOf('/wiki/') == 0) {
-            var fullHref = url.resolve(pageUrl, href);
-            console.log((++counter) + ')', text, href);
-            (function(fullHref) {
-                promise = promise.then(function() {
-                    return handleMuseumPage(fullHref).then(function(obj) {
-                        if (obj) {
-                            results.push(obj)
-                            console.log('* ', obj);
-                        }
-                    });
-                })
-            })(fullHref);
-        }
-    });
-    return promise.then(function() {
+var index = {};
+
+var pageUrls = [ 'https://fr.wikipedia.org/wiki/Musée_de_France',
+        'https://fr.wikipedia.org/wiki/Liste_de_mus%C3%A9es_en_France' ];
+return Promise.all(pageUrls.map(loadMuseums)).then(function() {
+    var features = [];
+    return Promise.all(Object.keys(index).sort().map(function(pageUrl) {
+        return index[pageUrl].then(function(feature) {
+            if (feature) {
+                features.push(feature);
+            }
+        });
+    })).then(function() {
         var str = JSON.stringify({
             type : 'FeatureCollection',
-            features : results
+            features : features
         }, null, 2);
         fs.writeFileSync('./museums-wikipedia.geo.json', str, 'UTF8');
     });
@@ -46,9 +31,42 @@ return Promise.resolve().then(function() {
     console.log('ERROR', err, err.stack);
 });
 
+function loadMuseums(pageUrl) {
+    return Promise.resolve().then(function() {
+        return loader.getPage(pageUrl);
+    }).then(function(window) {
+        var results = [];
+        var $ = jquery(window);
+        var counter = 0;
+        var promise = Promise.resolve();
+        $('a').each(function() {
+            var link = $(this);
+            var text = link.text();
+            var href = link.attr('href');
+            if (text.match(/(musée|château)/gim) //
+                    && href.indexOf('/wiki/') == 0) {
+                var fullHref = url.resolve(pageUrl, href);
+                console.log((++counter) + ')', text, href);
+                (function(fullHref) {
+                    promise = promise.then(function() {
+                        return handleMuseumPage(fullHref).then(function(obj) {
+                            if (obj) {
+                                results.push(obj)
+                                console.log('* ', obj);
+                            }
+                        });
+                    });
+                })(fullHref);
+            }
+        });
+        return promise;
+    })
+}
+
 function handleMuseumPage(pageUrl) {
     return Promise.resolve().then(function() {
-        return loader.getPage(pageUrl).then(function(window) {
+        return index[pageUrl] = index[pageUrl] || //
+        loader.getPage(pageUrl).then(function(window) {
             var $ = jquery(window);
             var infobox = $('.infobox_v2');
             if (!infobox.html()) {
