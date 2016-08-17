@@ -33,10 +33,13 @@ function newStyleGenerator() {
         // 'white'
         // ]);
         var haloColors = [ 'maroon', 'red', 'red', 'orange', 'yellow', 'white' ];
+        return haloColors;
+        
         var haloColors = [ 'navy', 'navy', 'blue', 'blue', 'cyan', 'cyan',
                 'yellow', 'yellow', 'white' ];
         var haloColors = [ 'navy', 'navy', 'blue', 'blue', 'blue', 'cyan',
                 'cyan', 'white' ];
+        
         var haloColors = [//
         '#045a8d', '#045a8d', '#045a8d', '#045a8d','#045a8d','#045a8d','#045a8d','#045a8d', //
         '#2b8cbe', '#2b8cbe', '#2b8cbe', '#2b8cbe','#2b8cbe','#2b8cbe','#2b8cbe', //
