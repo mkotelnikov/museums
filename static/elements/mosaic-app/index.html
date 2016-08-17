@@ -17,123 +17,15 @@
 <link rel="import" href="../mosaic-map/index.html">
 <link rel="import" href="../mosaic-map-marker/index.html">
 <link rel="import" href="../mosaic-map-tiles/index.html">
+<link rel="import" href="./museum-list-item.html">
 
 <script type="text/javascript" src="../../libs/mosaic-state/dist/index.js"></script>
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/ActiveFields.js"></script>
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/AppBehavior.js"></script>
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/AppComponentBehavior.js"></script>
 
-<dom-module id="museum-list-item">
-<style>
-paper-card { 
-    margin-bottom: 0.5em;
-    width: 98%;
-    overflow: hidden; 
-}
-.card-header { }
-.card-header .card-title {
-    font-size: 1.2em;
-}
-.card-header .category {
-    font-size: 0.8em;
-    float: right;
-    margin: 0.5em;
-    vertical-align: middle;
-    color: var(--paper-grey-600); 
-}
-.card-header .urls { }
-.card-header .urls .url { font-size: 0.8em; }
 
-.card-content { overflow: hidden; }
-.card-content .address { color: var(--paper-grey-600); }
-.card-content .description { color: var(--paper-grey-600); }
-
-</style>
-<template>
-    <paper-card>
-      <div class="card-header">
-        <template is="dom-if" if="[[category]]">
-            <div class="category">[[category]]</div>
-        </template>
-        <div class="card-title">[[label]]</div>
-        <template is="dom-if" if="[[urls.length]]">
-            <div class="urls">
-            <template is="dom-repeat" items="[[urls]]">
-                <div class="url"><a href="[[item]]" taret="_blank">[[item]]</a></div>
-            </template>
-            </div> 
-        </template>
-      </div>
-      <div class="card-content">
-        <div class="address">[[address]]</div>
-        <div class="description">[[description]]</div>
-      </div>
-      
-      <div class="card-actions">
-      <!-- 
-        <paper-button>Share</paper-button>
-        <paper-button>Explore!</paper-button>
-      -->
-      </div>
-    </paper-card>
-</template>
-<script>
-(function() {
-    Polymer({
-        is : 'museum-list-item',
-        properties : {
-            item: {
-              type: Object,
-              observer : '_onItemChange'
-            },
-            selected: {
-               type: Boolean,
-               value : false
-            },
-            expanded: {
-                type: Boolean,
-                value : true,
-                observer : '_onExpandedChange'
-            }
-        },
-        _onExpandedChange : function(expanded){
-            if (!this.item)
-                return ;
-        },
-        _getValues: function(key){
-            var values = this.item.properties[key];
-            if (!Array.isArray(values)){
-                values = values ? [values] : [];
-            }
-            return values;
-        },
-        _getValue : function(key){
-            var values = this._getValues(key);
-            return values.length ? values[0] : '';
-        },
-        _mergeValues : function(keys){
-            var array = [];
-            keys.forEach(function(key){
-                var value = this._getValue(key);
-                if (value){
-                    array.push(value);
-                }
-            }, this);
-            return array.join(', ');
-        },
-        _onItemChange : function(item){
-            this.category = this._getValue('category');
-            this.label = this._getValue('name');
-            this.address = this._mergeValues(['address', 'city']);
-            this.description = this._getValue('description');
-            this.urls = this._getValues('url');
-        }
-    })
-})();
-</script>
-</dom-module>
-
-<dom-module id="mosaic-app-component">
+<dom-module id="museums-map-component">
 <style>
 :host {
     display: block;

@@ -1,0 +1,160 @@
+<link rel="import" href="../../libs/iron-icon/iron-icon.html">
+<link rel="import" href="../../libs/iron-icons/iron-icons.html">
+<link rel="import" href="../../libs/paper-button/paper-button.html">
+<link rel="import" href="../../libs/paper-card/paper-card.html">
+<link rel="import" href="../../libs/paper-styles/color.html">
+<link rel="import" href="../../libs/paper-styles/typography.html">
+<link rel="import" href="../../libs/polymer/polymer.html" />
+
+<dom-module id="museum-list-item">
+<style>
+paper-card { 
+    margin-bottom: 0.5em;
+    width: 98%;
+    overflow: hidden; 
+    --paper-card-header : {
+        background-color: silver;
+    }
+    --paper-card-header-text : {
+        color : white;
+        text-shadow: 1px 1px 3px black;
+        font-size: 1.2em;
+        /* background-color: rgba(255,255,255,0.5); */
+     }
+}
+.card-header { padding: 16px; }
+.card-header .card-title {
+    font-size: 1.2em;
+}
+.card-header .category {
+    font-size: 0.8em;
+    float: right;
+    margin: 0.5em;
+    vertical-align: middle;
+    color: var(--paper-grey-600); 
+}
+
+.card-header .urls {  margin: 10px 0; }
+.card-header .urls .url { font-size: 0.8em; }
+.card-header .address {
+    color: var(--paper-grey-600);
+    font-size: 0.9em;
+    margin: 10px 0;
+}
+
+.card-content { overflow: hidden; }
+.card-content .description { }
+.card-content .wikipedia { margin: 10px 0; white-space: nowrap; }
+.card-content .wikipedia .url { font-size: 0.8em; }
+.card-content .wikipedia .url img {
+    width: 1em;
+    height: 1em;
+    border: 1px solid silver;
+    -webkit-border-radius: 0.2em;
+    -moz-border-radius: 0.2em;
+    border-radius: 0.2em;
+    margin-right: 0.5em;
+}
+
+</style>
+<template>
+    <paper-card heading="[[label]]" image="[[image]]" class="white">
+      <div class="card-header">
+        <template is="dom-if" if="[[category]]">
+            <div class="category">[[category]]</div>
+        </template>
+        <template is="dom-if" if="[[urls.length]]">
+            <div class="urls">
+                <template is="dom-repeat" items="[[urls]]">
+                    <div class="url"><a href="[[item]]" target="_blank">[[item]]</a></div>
+                </template>
+            </div> 
+        </template>
+        <div class="address">[[address]]</div>
+      </div>
+      
+      <div class="card-content">
+          <div class="description">[[description]]</div>
+          <div class="wikipedia">
+            <div class="url"><a href="[[wikipediaUrl]]" target="_blank"><img src="../../images/wikipedia.ico"/>[[wikipediaLabel]]</a></div>
+          </div> 
+      </div>
+      
+      <div class="card-actions">
+        <paper-button>Expand</paper-button>
+      </div>
+    </paper-card>
+</template>
+<script>
+(function() {
+    Polymer({
+        is : 'museum-list-item',
+        properties : {
+            item: {
+              type: Object,
+              observer : '_onItemChange'
+            },
+            selected: {
+               type: Boolean,
+               value : false
+            },
+            expanded: {
+                type: Boolean,
+                value : true,
+                observer : '_onExpandedChange'
+            }
+        },
+        _onExpandedChange : function(expanded){
+            if (!this.item)
+                return ;
+        },
+        _getValues: function(key){
+            var path = key.split('.');
+            var values = getValues(this.item.properties, path, 0);
+            if (!Array.isArray(values)){
+                values = values ? [values] : [];
+            }
+            return values;
+            function getValues(obj, path, pos){
+                if (!obj || pos == path.length)
+                    return obj;
+                if (pos > path.length)
+                    return ;
+                var segment = path[pos];
+                var value = obj[segment];
+                return getValues(value, path, pos+1);
+            }
+        },
+        _getValue : function(key){
+            var values = this._getValues(key);
+            return values.length ? values[0] : '';
+        },
+        _mergeValues : function(keys){
+            var array = [];
+            keys.forEach(function(key){
+                var value = this._getValue(key);
+                if (value){
+                    array.push(value);
+                }
+            }, this);
+            return array.join(', ');
+        },
+        _onItemChange : function(item){
+            this.category = this._getValue('category');
+            this.label = this._getValue('name');
+            this.image = this._getValue('images');
+            this.address = this._mergeValues([
+                'address.addr',
+                'address.city',
+                'address.country'
+            ]);
+            this.description = this._getValue('description');
+            this.urls = this._getValues('url');
+            this.wikipediaUrl = this._getValue('wikipediaUrl');
+            this.wikipediaLabel = 
+                decodeURIComponent(this.wikipediaUrl.replace(/^https?:\/\/(\w+)\..*\/(.*)$/gim, '$1:$2') || '');
+        }
+    })
+})();
+</script>
+</dom-module>
