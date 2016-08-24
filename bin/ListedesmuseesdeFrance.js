@@ -1,6 +1,6 @@
 var fs = require('fs');
 var d3_dsv = require('d3-dsv');
-var str = fs.readFileSync('./ListedesmuseesdeFrance.csv', 'UTF8');
+var str = fs.readFileSync('./data/ListedesmuseesdeFrance.csv', 'UTF8');
 
 var result = d3_dsv.csvParse(str);
 console.log(JSON.stringify(result, null, 2));

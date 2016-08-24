@@ -2,36 +2,267 @@ var jquery = require('jquery');
 var url = require('url');
 var fs = require('fs');
 var crypto = require('crypto');
-
-var Loader = require('./Loader');
+var reactive = require('mosaic-reactive');
+var Loader = require('./lib/Loader');
 
 var loader = new Loader({
     cacheDir : './.cache'
 })
-var index = {};
 
-var pageUrls = [ 'https://fr.wikipedia.org/wiki/Musée_de_France',
-        'https://fr.wikipedia.org/wiki/Liste_de_mus%C3%A9es_en_France' ];
-return Promise.all(pageUrls.map(loadMuseums)).then(function() {
-    var features = [];
-    return Promise.all(Object.keys(index).sort().map(function(pageUrl) {
-        return index[pageUrl].then(function(feature) {
-            if (feature) {
-                features.push(feature);
-            }
+var pages = [
+        {
+            urls : [ 'https://fr.wikipedia.org/wiki/Musée_de_France',
+                    'https://fr.wikipedia.org/wiki/Liste_de_mus%C3%A9es_en_France' ],
+            handler : loadMuseums
+        },
+        {
+            urls : [ 'https://fr.wikipedia.org/wiki/Cat%C3%A9gorie:Liste_des_monuments_historiques_fran%C3%A7ais_par_d%C3%A9partement' ],
+            urls : [],
+            handler : loadHistoricalMonuments
+        } ];
+var outputFile = './data/museums-wikipedia.geo.json';
+var outputFile = './data/monuments-museums-wikipedia.geo.json.stream';
+
+return Promise.resolve().then(function() {
+    var index = {};
+    var pageIndex = {};
+    var output = fs.createWriteStream(outputFile);
+
+    var promises = [];
+    pages.forEach(function(pageInfo) {
+        if (!pageInfo.urls)
+            return;
+        pageInfo.urls.forEach(function(pageUrl) {
+            promises.push(pageInfo.handler(pageUrl, {
+                shouldVisit : function(pageUrl) {
+                    return !(pageUrl in pageIndex);
+                },
+                pageVisited : function(pageUrl) {
+                    pageIndex[pageUrl] = true;
+                },
+                onItem : function(obj) {
+                    if (obj && !(obj.id in index)) {
+                        index[obj.id] = true;
+                        // output.write(JSON.stringify(obj, null, 2));
+                        output.write(JSON.stringify(obj));
+                        output.write('\n');
+
+                        console.log('* ', obj.id, //
+                        obj.properties.wikipediaUrl, obj.properties.name);
+                    }
+                },
+            }));
         });
-    })).then(function() {
-        var str = JSON.stringify({
-            type : 'FeatureCollection',
-            features : features
-        }, null, 2);
-        fs.writeFileSync('./museums-wikipedia.geo.json', str, 'UTF8');
+    })
+    return Promise.all(promises).then(function() {
+        output.end();
     });
 }).then(null, function(err) {
     console.log('ERROR', err, err.stack);
 });
 
-function loadMuseums(pageUrl) {
+// ------------------------------------------------------------
+
+function loadHistoricalMonuments(pageUrl, listener) {
+    function getText(cells, property) {
+        var cell = cells[property];
+        if (!cell)
+            return '';
+        var text = cell.text() || '';
+        return text.trim();
+    }
+    function getArray(cells, property) {
+        var text = getText(cells, property);
+        return text.split('\n');
+    }
+    function visitHistoricalMonumentsPage() {
+        return Promise.resolve().then(function() {
+            var promise = Promise.resolve();
+            return forAllReferences(pageUrl, function(link) {
+                var text = link.text();
+                var href = link.attr('href') || '';
+                var pattern = '/wiki/Liste_des_monuments_historiques';
+                if (href.indexOf(pattern) == 0) {
+                    var fullHref = url.resolve(pageUrl, href);
+                    promise = promise.then(function() {
+                        if (listener.shouldVisit(fullHref)) {
+                            return loadHistoricalMonuments(fullHref, listener);
+                        }
+                    });
+                }
+            }).then(function() {
+                return promise;
+            })
+        })
+    }
+    function visiMonumentTable($, table) {
+        if (table.find('th').first().text() !== 'Monument') {
+            return;
+        }
+        var list = getTableCells($, table);
+        list.forEach(function(cells, pos) {
+            var merimee = getText(cells, 'Notice');
+            merimee = merimee.replace(/« (.*) »/, '$1');
+            var properties = {
+                type : 'monument',
+                merimeeId : merimee,
+                name : getText(cells, 'Monument'),
+                wikipediaUrl : null,
+                wikipediaSourceUrl : pageUrl,
+                address : {
+                    country : 'France',
+                    city : getText(cells, 'Commune'),
+                },
+                protections : []
+            }
+
+            // ---------------------------------
+            var wikipediaUrl = cells['Monument']
+            //
+            .find('a').attr('href') || '';
+            if (wikipediaUrl.indexOf('/wiki/') === 0) {
+                wikipediaUrl = url.resolve(pageUrl, wikipediaUrl);
+                properties.wikipediaUrl = wikipediaUrl;
+            }
+
+            // ---------------------------------
+            var addr = getText(cells, 'Adresse');
+            if (addr) {
+                properties.address.addr = addr;
+            }
+
+            // ---------------------------------
+            var coords = cells['Coordonnées'];
+            var coordinates = getGeoCoordinates(coords);
+            var obj = {
+                id : uuid5(merimee),
+                properties : properties,
+                geometry : {
+                    type : 'Point',
+                    coordinates : coordinates
+                },
+                type : 'Feature',
+            }
+            // ---------------------------------
+            var dates = getArray(cells, 'Date');
+            var protection = getArray(cells, 'Protection');
+            dates.forEach(function(date, i) {
+                var p = protection[i];
+                properties.protections.push({
+                    type : p,
+                    date : date
+                });
+            });
+
+            // ---------------------------------
+            if (getText(cells, 'Illustration') !== 'Image manquante') {
+                var imgCell = cells['Illustration'];
+                var imgUrl = extractImage(pageUrl, imgCell);
+                properties.images = [ imgUrl ];
+            }
+
+            // console.log('
+            // * ',
+            // JSON.stringify(obj,
+            // null,
+            // 2));
+            listener.onItem(obj);
+        });
+        // 'Illustration',
+    }
+    return Promise.resolve().then(function() {
+        return Promise.resolve().then(function() {
+            return loader.getPage(pageUrl);
+        }).then(function(window) {
+            listener.pageVisited(pageUrl);
+            var results = [];
+            if (!window)
+                return;
+            var $ = jquery(window);
+            $('table').each(function() {
+                var table = $(this);
+                visiMonumentTable($, table);
+            })
+        }).then(function() {
+            return visitHistoricalMonumentsPage();
+        });
+    })
+}
+
+function getTableCells($, table) {
+    var counter = 0;
+    var properties = [];
+    var objects = [];
+    table.find('tr').each(function() {
+        var tr = $(this);
+        if (counter === 0) {
+            tr.find('th').each(function() {
+                var cell = $(this);
+                properties.push(cell.text().trim());
+            })
+        } else {
+            var obj = {};
+            var pos = 0;
+            tr.find('td').each(function() {
+                var cell = $(this);
+                var property = properties[pos++];
+                obj[property] = cell;
+            });
+            objects.push(obj);
+        }
+        counter++;
+    });
+    return objects;
+}
+
+// ------------------------------------------------------------
+
+function loadMuseums(pageUrl, listener) {
+    return Promise.resolve().then(function() {
+        var promise = Promise.resolve();
+        return forAllReferences(pageUrl, function(link) {
+            var text = link.text();
+            var href = link.attr('href');
+            if (text.match(/(musée|château)/gim) //
+                    && href.indexOf('/wiki/') == 0) {
+                var fullHref = url.resolve(pageUrl, href);
+                promise = promise.then(function() {
+                    return handleMuseumPage(fullHref).then(function(obj) {
+                        listener.onItem(obj);
+                    });
+                });
+            }
+        }).then(function() {
+            return promise;
+        })
+    })
+}
+
+function handleMuseumPage(pageUrl) {
+    return Promise.resolve().then(function() {
+        return loader.getPage(pageUrl).then(function(window) {
+            var $ = jquery(window);
+            var promises = [];
+            var obj = newObject(pageUrl, $);
+            if (obj) {
+                var infobox = $('.infobox_v2');
+                var array = getGeoCoordinates(infobox);
+                obj.geometry.coordinates[0] = array[0];
+                obj.geometry.coordinates[1] = array[1];
+                promises.push(extractProperties(pageUrl, $, obj.properties));
+                promises.push(extractImages(pageUrl, $, obj.properties));
+                obj.properties.type = 'museum';
+            }
+            return Promise.all(promises).then(function() {
+                return obj;
+            });
+        });
+    });
+}
+
+// ------------------------------------------------------------
+
+function forAllReferences(pageUrl, callback) {
     return Promise.resolve().then(function() {
         return loader.getPage(pageUrl);
     }).then(function(window) {
@@ -41,70 +272,13 @@ function loadMuseums(pageUrl) {
         var promise = Promise.resolve();
         $('a').each(function() {
             var link = $(this);
-            var text = link.text();
-            var href = link.attr('href');
-            if (text.match(/(musée|château)/gim) //
-                    && href.indexOf('/wiki/') == 0) {
-                var fullHref = url.resolve(pageUrl, href);
-                console.log((++counter) + ')', text, href);
-                (function(fullHref) {
-                    promise = promise.then(function() {
-                        return handleMuseumPage(fullHref).then(function(obj) {
-                            if (obj) {
-                                results.push(obj)
-                                console.log('* ', obj);
-                            }
-                        });
-                    });
-                })(fullHref);
-            }
-        });
-        return promise;
-    })
-}
-
-function handleMuseumPage(pageUrl) {
-    return Promise.resolve().then(function() {
-        return index[pageUrl] = index[pageUrl] || //
-        loader.getPage(pageUrl).then(function(window) {
-            var $ = jquery(window);
-            var infobox = $('.infobox_v2');
-            if (!infobox.html()) {
-                return;
-            }
-            var promises = [];
-
-            var properties = {
-                name : null,
-                url : null,
-                wikipediaUrl : pageUrl,
-            };
-            var coordinates = infobox.find('.geo-dec').text() || '0, 0';
-            coordinates = coordinates.split(', ').map(function(v) {
-                return +v;
-            }).reverse();
-            var obj = {
-                id : uuid5(pageUrl),
-                type : 'Feature',
-                properties : properties,
-                geometry : {
-                    type : 'Point',
-                    coordinates : coordinates
-                }
-            }
-
-            promises.push(extractProperties(pageUrl, $, properties));
-            promises.push(extractImages(pageUrl, $, properties));
-
-            return Promise.all(promises).then(function() {
-                return obj;
-            });
-        });
+            callback(link);
+        })
     });
 }
+
 function uuid5(data) {
     var out = crypto.createHash('sha1').update(data).digest();
-
     out[8] = out[8] & 0x3f | 0xa0; // set variant
     out[6] = out[6] & 0x0f | 0x50; // set version
 
@@ -112,6 +286,43 @@ function uuid5(data) {
 
     return [ hex.substring(0, 8), hex.substring(8, 12), hex.substring(12, 16),
             hex.substring(16, 20), hex.substring(20, 32) ].join('-');
+}
+
+function newObject(pageUrl, $) {
+    var infobox = $('.infobox_v2');
+    if (!infobox.html()) {
+        return;
+    }
+
+    var properties = {
+        type : null,
+        name : null,
+        url : null,
+        wikipediaUrl : pageUrl,
+    };
+    var coordinates = [ 0, 0 ];
+    var obj = {
+        id : uuid5(pageUrl),
+        properties : properties,
+        geometry : {
+            type : 'Point',
+            coordinates : coordinates
+        },
+        type : 'Feature',
+    }
+    return obj;
+}
+
+function getGeoCoordinates(elm) {
+    if (!elm)
+        return [ 0, 0 ];
+    var array = elm.find('.geo-dec').text() || '0, 0';
+    array = array.split(', ').map(function(v) {
+        return +v;
+    }).filter(function(v) {
+        return !isNaN(v);
+    }).reverse();
+    return array;
 }
 
 function extractProperties(pageUrl, $, properties) {
@@ -188,42 +399,64 @@ function extractImages(pageUrl, $, properties) {
         var promise = Promise.resolve();
         var images = [];
         infobox.find('a.image').each(function() {
-            var img = $(this).find('img');
+            var img = $(this);
             promise = promise.then(function() {
-                return extractImage(img).then(function(href) {
-                    if (href) {
-                        images.push(href);
-                    }
-                })
+                var href = extractImage(pageUrl, img);
+                if (href) {
+                    images.push(href);
+                }
             })
         });
         return promise.then(function() {
             properties.images = images;
         });
     });
-    function extractImage(img) {
-        return Promise.resolve().then(function() {
-            var href = img.attr('src');
-            if (href.match(/\.(png|svg)/gim))
-                return;
-            if (href.match(/_location_map\.jpg/gim) || href.match(/Map_/gim))
-                return;
-            href = url.resolve(pageUrl, href);
-            href = href.replace(/^(.*)\/\d+px-(.*)$/, '$1/512px-$2');
-            return href;
-            // var commonsHref = $(this).attr('href');
-            // var promise = loadImageUrl(href, commonsHref).then(
-            // function(url) {
-            // images.push(url);
-            // });
-            // promises.push(promise);
-            // href = url.resolve(pageUrl, href);
-        });
-    }
-
 }
 
 // -----------------------------------------------------------
+
+function extractImage(pageUrl, elm) {
+    if (!elm)
+        return;
+    var img = elm.find('img');
+    var href = img.attr('src');
+    if (!href)
+        return;
+    if (href.match(/\.(png|svg)/gim))
+        return;
+    if (href.match(/_location_map\.jpg/gim) || href.match(/Map_/gim))
+        return;
+    href = url.resolve(pageUrl, href);
+    var width = +img.attr('data-file-width');
+    var height = +img.attr('data-file-height');
+    var thumbnailWidth = 512;
+    if (!isNaN(width)) {
+        if (thumbnailWidth > width) {
+            var pow = Math.floor(Math.log(width) / Math.log(2));
+            thumbnailWidth = Math.pow(2, pow);
+        }
+    }
+    var thumbnailUrl = href.replace(/^(.*)\/\d+px-(.*)$/, '$1/'
+            + thumbnailWidth + 'px-$2');
+    href = href.replace(/^(.*)\/thumb\/(.*)\/[^\/]+$/, '$1/$2');
+
+    // https://upload.wikimedia.org/wikipedia/commons/d/d4/Abbaye_Saint_Colomban.jpg
+    // https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Abbaye_Saint_Colomban.jpg/59px-Abbaye_Saint_Colomban.jpg
+
+    return {
+        url : href,
+        width : width,
+        height : height,
+        thumbnail : thumbnailUrl
+    }
+    // var commonsHref = $(this).attr('href');
+    // var promise = loadImageUrl(href, commonsHref).then(
+    // function(url) {
+    // images.push(url);
+    // });
+    // promises.push(promise);
+    // href = url.resolve(pageUrl, href);
+}
 
 function replaceProperties(obj, mapping) {
     Object.keys(mapping).forEach(function(from) {
@@ -288,6 +521,52 @@ function getValue(obj, path) {
             return doGet(value, path, pos + 1);
         } else {
             return value;
+        }
+    }
+}
+
+// -----------------------------------------------------------
+
+function newStream() {
+    var ext = extend({}, reactive.stream, {
+        toJsonArray : toJsonArray,
+        _newClone : function() {
+            return new reactive.Stream(Promise, ext);
+        }
+    });
+    return new reactive.Stream(Promise, ext);
+
+    function toJsonArray(format, stream) {
+        stream = stream || this;
+        var result = stream.clone();
+        var initialized = false;
+        var counter = 0;
+        stream.each(function(obj) {
+            init();
+            if (counter > 0) {
+                result.write(',');
+            }
+            counter++;
+            if (format) {
+                result.write('\n');
+                result.write(JSON.stringify(obj, null, 2));
+            } else {
+                result.write(JSON.stringify(obj));
+            }
+        });
+        stream.done(function() {
+            init();
+            if (format) {
+                result.write('\n');
+            }
+            result.write(']');
+        });
+        return result;
+        function init() {
+            if (!initialized) {
+                initialized = true;
+                result.write('[');
+            }
         }
     }
 }

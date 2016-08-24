@@ -24,8 +24,7 @@
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/AppBehavior.js"></script>
 <script type="text/javascript" src="../../libs/mosaic-webcomponents/AppComponentBehavior.js"></script>
 
-
-<dom-module id="museums-map-component">
+<dom-module id="mosaic-app-component">
 <style>
 :host {
     display: block;
@@ -44,16 +43,27 @@ paper-input {
     --paper-input-container-invalid-color: red;
     --paper-input-container-input-color: white;
 }
+
+paper-drawer-panel {
+  --paper-drawer-panel-scrim: {
+    background-color: rgba(0,0,0,0.3);
+  };
+}
   
 </style>
 
 <template>
-<paper-drawer-panel>
+<paper-drawer-panel drawer-width="512px" right-drawer>
 
   <iron-ajax url="{{searchUrl}}" last-response="{{searchResults}}" auto></iron-ajax>
   <paper-header-panel drawer right-drawer>
     <paper-toolbar>
-      <h1>Mosaic Maps</h1>
+      <div>
+            <paper-input label="Search" value="{{searchInput}}" no-label-float>
+              <iron-icon icon="search" prefix></iron-icon>
+              <paper-icon-button suffix on-click="_clearSearchInput" icon="clear" alt="Clear" title="Clear"></paper-icon-button>
+            </paper-input>
+      </div>
     </paper-toolbar>
     <div>
         <template is="dom-repeat" items="[[searchItems]]">
@@ -65,12 +75,7 @@ paper-input {
   <paper-header-panel main>
     <paper-toolbar>
       <paper-icon-button icon="menu" paper-drawer-toggle></paper-icon-button>
-      <div>
-            <paper-input label="Search" value="{{searchInput}}" no-label-float>
-              <iron-icon icon="search" prefix></iron-icon>
-              <paper-icon-button suffix on-click="_clearSearchInput" icon="clear" alt="Clear" title="Clear"></paper-icon-button>
-            </paper-input>
-      </div>
+      <h1>Mosaic Maps</h1>
     </paper-toolbar>
     <mosaic-map zoom="{{mapInfo.zoom}}"
         center="{{mapInfo.center}}" min-zoom="1" max-zoom="18">

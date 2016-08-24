@@ -15,13 +15,23 @@ paper-card { 
     width: 98%;
     overflow: hidden; 
     --paper-card-header : {
-        background-color: silver;
+        /* 
+        max-height: 320px;
+        min-height: 200px;
+        */
+        background-color: white;
+        /* background-color: var(--paper-blue-600); */
     }
     --paper-card-header-text : {
-        color : white;
-        text-shadow: 1px 1px 3px black;
+        color : black;
+        /* text-shadow: 1px 1px 3px black; */
         font-size: 1.2em;
-        /* background-color: rgba(255,255,255,0.5); */
+        
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        left: 0px;
+        background-color: rgba(255,255,255,0.5);
      }
 }
 .card-header { padding: 16px; }
@@ -57,7 +67,8 @@ paper-card { 
 }
 .card-content .wikipedia { margin: 10px 0; white-space: nowrap; overflow: hidden; }
 .card-content .wikipedia .url { font-size: 0.8em; }
-.card-content .wikipedia .url img {
+
+img.wikipedia-logo {
     width: 1em;
     height: 1em;
     border: 1px solid silver;
@@ -66,7 +77,6 @@ paper-card { 
     border-radius: 0.2em;
     margin-right: 0.5em;
 }
-
 </style>
 <template>
     <paper-card heading="[[label]]" image="[[image]]" class="white">
@@ -79,6 +89,12 @@ paper-card { 
                 <template is="dom-repeat" items="[[urls]]">
                     <div class="url"><a href="[[item]]" target="_blank">[[item]]</a></div>
                 </template>
+                <div class="url">
+                    <a href="[[wikipediaUrl]]" target="_blank">
+                        <img src="../../images/wikipedia.ico" class="wikipedia-logo" />
+                        [[wikipediaLabel]]
+                    </a>
+                </div>
             </div> 
         </template>
         <div class="address">[[address]]</div>
@@ -89,7 +105,7 @@ paper-card { 
                 <div class="description">[[description]]</div>
             </template>
               <div class="wikipedia">
-                <div class="url"><a href="[[wikipediaUrl]]" target="_blank"><img src="../../images/wikipedia.ico"/>[[wikipediaLabel]]</a></div>
+                <div class="url">&#150;&nbsp;<a href="[[wikipediaUrl]]" target="_blank">[[wikipediaLabel]]</a></div>
               </div> 
           </div>
       </iron-collapse>
@@ -163,7 +179,10 @@ paper-card { 
         _onItemChange : function(item){
             this.category = this._getValue('category');
             this.label = this._getValue('name');
-            this.image = this._getValue('images');
+            var image = this._getValue('images');
+            if (image) {
+                this.image = image.thumbnail;
+            }
             this.address = this._mergeValues([
                 'address.addr',
                 'address.city',
