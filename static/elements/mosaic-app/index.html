@@ -80,12 +80,17 @@ paper-drawer-panel {
     <mosaic-map zoom="{{mapInfo.zoom}}"
         center="{{mapInfo.center}}" min-zoom="1" max-zoom="18">
     
-        <mosaic-map-tiles tiles-url="tiles/tiles-world/{z}/{x}/{y}/tile.png">
+        <mosaic-map-tiles tiles-url="http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" z-index="1">
         </mosaic-map-tiles>
-    
+<!--         
+        <mosaic-map-tiles tiles-url="tiles/tiles-world/{z}/{x}/{y}/tile.png"  z-index="2">
+        </mosaic-map-tiles>
+ -->    
         <mosaic-map-tiles
             tiles-url="{{searchTilesUrl}}"
             utfgrid-url="{{searchUtfGridUrl}}"
+            z-index="10"
+            opacity="0.8"
             on-click="_handleClick">
         </mosaic-map-tiles>
         
