@@ -24,6 +24,17 @@
                     type : String,
                     notify : true,
                     observer : '_resetUtfGrid'
+                },
+                zIndex :  {
+                    type : Number,
+                    notify : true,
+                    observer : '_updateZIndex'
+                },
+                opacity :  {
+                    type : Number,
+                    notify : true,
+                    value : 1,
+                    observer : '_updateOpacity'
                 }
             },
             ready : function() {
@@ -39,6 +50,7 @@
                 if (this.tilesUrl) {
                     this._tiles = L.tileLayer(this.tilesUrl, {
                         attribution : this.attribution,
+                        opacity : this.opacity
                     /* 
                      minZoom : minZoom,
                      maxZoom : maxZoom,
@@ -70,6 +82,16 @@
                     }, this)
                 }
             },
+            _updateZIndex : function(){
+                if (!this.leafletElement)
+                    return;
+                this.leafletElement.setZIndex(this.zIndex);
+            }, 
+            _updateOpacity : function(){
+                if (!this._tiles)
+                    return;
+                this._tiles.setOpacity(this.opacity);
+            }
         });
     })();
 </script> </dom-module>
